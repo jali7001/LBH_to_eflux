@@ -45,11 +45,10 @@ for doy in doy_arr:
     day_dir = os.path.join(directory,'{}{}'.format(year,doy))
     if not os.path.exists(day_dir):
         os.makedirs(day_dir)
+
     #iterate across satellites
     for satnum in satNum_arr:
-        ssusi_dir_sdr_disk = '/pub/data/dmsp/dmspf%d/ssusi/data/sdr-disk/%d/%.3d' % (satnum,year,doy)
-        ssusi_dir_sdr_limb = '/pub/data/dmsp/dmspf%d/ssusi/data/sdr-limb/%d/%.3d' % (satnum,year,doy)
-
+        ssusi_dir_sdr_disk = '/pub/data/dmsp/dmspf%d/ssusi/data/sdr-disk/%d/%.3d' % (satnum,year,doy) #create query for disk observations
         ftp = FTP_TLS('cdaweb.gsfc.nasa.gov')
         ftp.login()
         download_all(ftp,ssusi_dir_sdr_disk, local_dir = day_dir)
