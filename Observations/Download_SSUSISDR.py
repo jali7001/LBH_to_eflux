@@ -14,7 +14,7 @@ doy_arr = [48,49,50,51,52,53,54] #days of year
 satNum_arr = [16,17,18] #DMSP satellites to take data from
 
 
-def download_all(ftp,full_remote_dir,local_dir):
+def download_all_ssusi(ftp,full_remote_dir,local_dir):
     ftp.cwd(full_remote_dir)
     filenames = ftp.nlst() # get filenames within the directory
     print('Downloading from %s' % (full_remote_dir))
@@ -51,6 +51,6 @@ for doy in doy_arr:
         ssusi_dir_sdr_disk = '/pub/data/dmsp/dmspf%d/ssusi/data/sdr-disk/%d/%.3d' % (satnum,year,doy) #create query for disk observations
         ftp = FTP_TLS('cdaweb.gsfc.nasa.gov')
         ftp.login()
-        download_all(ftp,ssusi_dir_sdr_disk, local_dir = day_dir)
+        download_all_ssusi(ftp,ssusi_dir_sdr_disk, local_dir = day_dir)
 
 ftp.quit()
