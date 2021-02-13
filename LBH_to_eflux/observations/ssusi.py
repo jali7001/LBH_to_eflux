@@ -21,7 +21,7 @@ import h5py
 import glob
 from sklearn import linear_model
 
-from .helper_funcs import latlt2polar,polar2dial, module_Apex, update_apex_epoch
+from ..helper_funcs import latlt2polar,polar2dial, module_Apex, update_apex_epoch
 
 
 class ssusiSDRpass(object):
@@ -42,7 +42,7 @@ class ssusiSDRpass(object):
 
 
     """
-    def __init__(self,ssusi_file,dmsp,dt,hemisphere ,radiance_type='LBHL', noise_removal = True, spatial_bin = True, ):
+    def __init__(self, ssusi_file, dmsp, hemisphere, radiance_type = 'LBHL', noise_removal = True, spatial_bin = True, ):
         """
         
         Inputs
@@ -62,20 +62,13 @@ class ssusiSDRpass(object):
         }
         self.arg_radiance = self.ssusi_colors[radiance_type]
 
-        self._metadata = RecordMetadata('dB',
-                                        'Spacecraft FUV measurements',
-                                        'kRa',
-                                        validmin = 0,
-                                        validmax = 500,
-                                        typicalvalue = 1)
-
         self.name = 'SSUSI ' + radiance_type
         self.hemisphere = hemisphere
 
         self.radiance_type = radiance_type
         self.spatial_bin = spatial_bin
 
-        self.year,self.month,self.day = dt.year,dt.month,dt.day
+        # self.year,self.month,self.day = dt.year,dt.month,dt.day
 
         #prepare grid if spatially binning
         if spatial_bin:
@@ -85,22 +78,11 @@ class ssusiSDRpass(object):
 
         self['jds'] = pass_data['epochjd_match']
         self['observer_ids'] = pass_data['observer']
-        self['Y'] = pass_data['Y']
 
+        self['Y'] = pass_data['Y']
         self['Y_var'] = pass_data['Y_var']
         self['lats'] = pass_data['mlat']
         self['lons'] = pass_data['mlon']
-
-    def plot_obs(self, ax, startdt,enddt,hemisphere,allowed_observers, **kwargs):
-
-        lats,lons,obs,y_var,obs_to_basis,ymeta = self.get_ingest_data(startdt,enddt,hemisphere,allowed_observers)
-        r,theta = self.latlt2polar(lats.flatten(),lons.flatten()/180*12,'N')
-
-        ax.scatter(theta,r,c = obs, **kwargs)
-
-        polar2dial(ax)
-
-
 
     def get_data_window(self, startdt, enddt, hemisphere, allowed_observers):
         """
@@ -112,12 +94,7 @@ class ssusiSDRpass(object):
         for datavarname,datavararr in self.items():
             data_window[datavarname] = datavararr[mask]
 
-        data_window_metadata = self._metadata.copy()
-        data_window_metadata['window_startdt']=startdt
-        data_window_metadata['window_enddt']=enddt
-        data_window_metadata['window_allowed_observers']=allowed_observers
-
-        return data_window,data_window_metadata
+        return data_window
 
 
     def _read_SDR_file(self, file_name):
@@ -142,6 +119,7 @@ class ssusiSDRpass(object):
             disk['radiance_all_colors_uncertainty'] = h5f['DISK_RADIANCE_UNCERTAINTY_DAY_AURORAL'][:] /1000.
             disk['radiance_all_colors'] = h5f['DISK_RECTIFIED_INTENSITY_DAY_AURORAL'][:] / 1000.
 
+
         #get epoch from seconds of day, day of year, and year in terms of datetimes 
         dt = np.empty((len(disk['doy']),1),dtype='object')
         for k in range(len(dt)):
@@ -160,28 +138,9 @@ class ssusiSDRpass(object):
 
         #read in each file 
         disk_data = self._read_SDR_file(ssusi_file)
-
-        if self.noise_removal:
-            #remove solar influence 
-            corrected_radiance = np.full_like(disk_data['radiance_all_colors'],np.nan)
-            sza = disk_data['SZA']
-            for icolor in range(5):
-                radiance = disk_data['radiance_all_colors'][:,:,icolor]
-                radiance_fit = self._radiance_zenith_correction(sza,radiance)                    
-                corrected_radiance[:,:,icolor]= radiance - radiance_fit
-            disk_data['radiance_all_colors'] = corrected_radiance
-
+        
         #integrate disk data into usable magnetic coordinates
         disk_int = self._ssusi_integrate(disk_data)
-
-        #get relevant observation
-        disk_int['Y'] = disk_int['radiance_all_colors'][:,:,self.arg_radiance]
-        disk_int['Y_var'] = disk_int['radiance_all_colors_uncertainty'][:,:,self.arg_radiance]
-        
-        #add the other colors to the dictionary
-        for color in self.ssusi_colors:
-            disk_int[color] = disk_int['radiance_all_colors'][:,:,self.ssusi_colors[color]]
-            disk_int[color + ' var'] = disk_int['radiance_all_colors_uncertainty'][:,:,self.ssusi_colors[color]]
 
         #report mlon is magnetic local time in degrees 
         disk_int['mlon'] = disk_int['mlt'] * 15
@@ -190,17 +149,24 @@ class ssusiSDRpass(object):
         shape = np.shape(disk_int['mlat'])
         disk_int['epoch_match'] = np.tile(disk_int['epoch'].flatten(), (shape[0],1))
 
+        #get the relevant observations
+        disk_int['Y'] = disk_int['radiance_all_colors'][:,:,self.arg_radiance]
+        disk_int['Y_var'] = disk_int['radiance_all_colors_uncertainty'][:,:,self.arg_radiance]
+
+        #get rid of negative values 
+        disk_int['Y'][disk_int['Y']<0] = 0
+
+        #if solar influence removal
+        if self.noise_removal:
+            radiance_fit = self._radiance_zenith_correction(disk_data['SZA'],disk_int['Y'])                    
+            disk_int['Y'] = disk_int['Y'] - radiance_fit
+
         #flatten data
         for item in disk_int:
-            item = item.flatten()
+            disk_int[item] = disk_int[item].flatten()
 
-        # disk_int['Y'] = disk_int['Y'].flatten()
-        # disk_int['Y_var'] = disk_int['Y_var'].flatten()
-        # disk_int['mlt'] = disk_int['mlt'].flatten()
-        # disk_int['mlon'] = disk_int['mlon'].flatten()
-        # disk_int['mlat'] = disk_int['mlat'].flatten()
-        # disk_int['epoch_match'] = disk_int['epoch_match'].flatten()
-        # disk_int['epochjd_match'] = datetimearr2jd(disk_int['epoch_match']).flatten()
+        #get times in terms of jds
+        disk_int['epochjd_match'] = datetimearr2jd(disk_int['epoch_match']).flatten()
 
         #Spatially bin observations if desired
         if self.spatial_bin:
@@ -213,23 +179,16 @@ class ssusiSDRpass(object):
     def ssusi_spatial_binning(self,disk_int):
         """
         This function spatially bins the 
-        TO DO: move the finite mask out 
         """
 
         disk_binned = {}
         #spatial bin 
         lats_in_pass, lts_in_pass, Y_in_pass, Y_var_in_pass = disk_int['mlat'], disk_int['mlt'], disk_int['Y'], disk_int['Y_var']
         epochjds_in_pass = disk_int['epochjd_match']
+        
         #convert from mlt [0, 24] to [-12, 12]
         lts_mask = lts_in_pass >= 12
         lts_in_pass[lts_mask] -= 24 
-
-        #mask out non finite data 
-        finite_mask_lt = np.isfinite(lts_in_pass)
-        finite_mask_lat = np.isfinite(lats_in_pass)
-        mask = np.logical_and(finite_mask_lt,finite_mask_lat)
-        lts_in_pass, lats_in_pass, Y_in_pass, Y_var_in_pass = lts_in_pass[mask], lats_in_pass[mask], Y_in_pass[mask], Y_var_in_pass[mask]
-        epochjds_in_pass = epochjds_in_pass[mask]
 
         binlats, binlons, binstats = self.grid.bin_stats(lats_in_pass.flatten(), lts_in_pass.flatten(), Y_in_pass.flatten(), \
                                             statfun = np.nanmean, center_or_edges = 'center')
@@ -283,6 +242,49 @@ class ssusiSDRpass(object):
         mlt = mlt.reshape(datadict['glon'].shape)
 
         return alat,mlt  
+
+    def get_ingest_data(self,startdt, enddt, hemisphere, allowed_observers):
+        """
+        Returns
+        -------
+        lats : np.ndarray
+            Absolute magnetic latitudes of observations
+        lons : np.ndarray
+            magnetic 'longitudes' (MLT in degrees) of observations
+        y : np.ndarray
+            1D array of kiloRayleighs
+        y_var : np.ndarray
+            1D array of uncertainies (variances) in magnetic perturbations
+            (i.e. diagonal of observation error covariance matrix)
+        """
+        startdt = jd2datetime(np.nanmin(self['jds']))
+        enddt = jd2datetime(np.nanmax(self['jds']))
+        datadict = self.get_data_window(startdt,
+                                        enddt,
+                                        hemisphere,
+                                        allowed_observers)
+        y = datadict['Y'].reshape(-1,1)
+
+
+        #Format the error/variance vector similarly,
+        y_var = datadict['Y_var'].reshape(-1,1);
+
+        #Locations for each vector component
+        ylats = datadict['lats'].reshape(-1,1)
+        ylons = datadict['lons'].reshape(-1,1)
+
+        #jds 
+        jds = datadict['jds'].reshape(-1,1)
+        return np.abs(ylats),ylons,y,y_var,jds 
+
+    def plot_obs(self, ax, startdt,enddt,hemisphere,allowed_observers, **kwargs):
+
+        lats,lons,obs,y_var,jds = self.get_ingest_data(startdt,enddt,hemisphere,allowed_observers)
+        r,theta = latlt2polar(lats.flatten(),lons.flatten()/180*12,'N')
+
+        ax.scatter(theta,r,c = obs, **kwargs)
+
+        polar2dial(ax)
 
     @staticmethod
     def _ssusi_integrate_position(position_data):
@@ -379,28 +381,6 @@ class ssusiSDRpass(object):
         mask = np.logical_and(mask,self._get_hemisphere_mask(hemisphere))
         mask = np.logical_and(mask,self._get_observers_mask(allowed_observers))
         return mask
-
-    def get_data_window(self,startdt,enddt,hemisphere,allowed_observers):
-        """Return an ordered dictionary of all observation data variables
-        which represents the values of each variable for times in
-        [startdt,enddt), in about 50 degrees latitude in hemisphere,
-        and with RIDs in list allowed_observers (or all observers if
-        allowed_observers is None)
-        """
-
-        mask = self.get_data_window_mask(startdt,enddt,hemisphere,allowed_observers)
-        self['Y'][self['Y']<0] = 0
-
-        observation_data_window = OrderedDict()
-        for varname,vararray in self.items():
-            observation_data_window[varname]=vararray[mask]
-
-        data_window_metadata = self._metadata.copy()
-        data_window_metadata['window_startdt']=startdt
-        data_window_metadata['window_enddt']=enddt
-        data_window_metadata['window_allowed_observers']=allowed_observers
-
-        return observation_data_window, data_window_metadata
 
     def _get_finite(self):
         return np.isfinite(self['Y'])
