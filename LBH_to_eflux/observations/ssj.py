@@ -9,18 +9,23 @@ from geospacepy import special_datetime, satplottools
 class ssj_day(object):
     """
     This class facilitates the data handling for the SSJ data provided by GLOW model using v2 
+
+    Attributes:
+
     """
 
     def __init__(self,dmsp, hemi, ssj_file, read_spec = False):
         """
+        Parameters
+        ----------
             dmsp - int
-                number of the DMSP spacecraft with acceptable numbers being 16, 17, and 18.
-            hemi - string
-                hemisphere (must be either 'N' or 'S')
-            day - datetime object
-                datetime element of the day of data to use
-            ssj_file- string
+                 DMSP spacecraft must take value in [16, 17, 18]
+            hemi - str
+                Hemisphere of observations (must be either 'N' or 'S')
+            ssj_file- str
                 location of ssj file 
+            read_spec - bool, optional
+                Switch of whether or not to read differential flux values
         """
 
         self.dmsp = dmsp
@@ -37,8 +42,6 @@ class ssj_day(object):
         self.mlons = self.mlts*15
 
         #unit conversions 
-        #erg 
-        # self.energy_flux = self.energy_flux * 1.6e-12 * np.pi
         self.energy_flux_uncert = self.energy_flux_uncert *self.energy_flux
 
         #convert mean energy unit
