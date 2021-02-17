@@ -5,16 +5,29 @@ import pdb
 import os 
 import spacepy.pycdf as pycdf
 from geospacepy import special_datetime, satplottools
+from collections import OrderedDict
+from geospacepy.special_datetime import (datetimearr2jd,
+                                        datetime2jd,
+                                        jd2datetime)
 
 class ssj_day(object):
     """
     This class facilitates the data handling for the SSJ data provided by GLOW model using v2 
 
     Attributes:
+    mlons : 
+    mlats : 
 
+    ele_mean_energy
+    ele_mean_energy_uncert
+    ele_total_energy_flux
+    ele_total_energy_flux_uncert
+    ion_total_energy_flux
+    ion_total_energy_flux_uncert
+    ele_diff_energy_flux
+    ion_diff_energy_flux
     """
-
-    def __init__(self,dmsp, hemi, ssj_file, read_spec = False):
+    def __init__(self, dmsp, hemi, ssj_file, read_spec = False, min_lat = 50):
         """
         Parameters
         ----------
@@ -26,143 +39,125 @@ class ssj_day(object):
                 location of ssj file 
             read_spec - bool, optional
                 Switch of whether or not to read differential flux values
+                Defaults to False
+            min_lat - float, optional
         """
 
         self.dmsp = dmsp
-        self.hemi = hemi
-        self.ssj_dir = ssj_dir
-
+        self.hemisphere = hemi
+        self.ssj_file = ssj_file
         self.read_spec = read_spec #determine whether or not to read in spectrogram results
+        self.min_lat = min_lat
 
         #read in the data
-        self.mlts, self.mlons,self.mlats,self.mean_energy,self.mean_energy_uncert,self.energy_flux,self.energy_flux_uncert, \
-        self.lbhl, self.lbhs, self.orbit_index,self.epoch  = ssj_day.read_cdf_ssj()
-        
-        #convert MLT to degrees 
-        self.mlons = self.mlts*15
-
-        #unit conversions 
-        self.energy_flux_uncert = self.energy_flux_uncert *self.energy_flux
-
-        #convert mean energy unit
-        #from eV to KeV
-        self.mean_energy = self.mean_energy*1e-3
-        self.mean_energy_uncert = self.mean_energy_uncert*self.mean_energy
+        self.read_cdf_ssj()
 
         #convert epoch to jd time 
-        self.epochjd = special_datetime.datetimearr2jd(self.epoch) 
+        self['jds'] = special_datetime.datetimearr2jd(self['epoch']) 
 
     def read_cdf_ssj(self):
         """
-            Read in GLOW processing of SSJ data for the entire day
+        Read in GLOW processing of SSJ data for the entire day
+
+        Returns
+        -------
+
         """
 
-        day_dir = os.path.join(self.ssj_dir, '{}'.format(self.day.strftime('%Y%m%d')))
-        day_ssj =  os.path.join(day_dir,'dmsp-f%d_ssj_precipitating-electrons-ions_%s_v1.1.3_GLOWcond_v2.cdf' % (self.dmsp, (self.day.strftime('%Y%m%d'))))
-        self.day_ssj = day_ssj #store this in case we want to read in the spectral data later
+        ssj_file = self.ssj_file
 
-        with pycdf.CDF(day_ssj) as cdffile:    
-            MLT_dmsp_day =cdffile['SC_APEX_MLT'][:].flatten()
-            LON_dmsp_day = cdffile['SC_APEX_LON'][:].flatten()
-            LAT_dmsp_day = cdffile['SC_APEX_LAT'][:].flatten()
+        # day_dir = os.path.join(self.ssj_dir, '{}'.format(self.day.strftime('%Y%m%d')))
+        # day_ssj =  os.path.join(day_dir,'dmsp-f%d_ssj_precipitating-electrons-ions_%s_v1.1.3_GLOWcond_v2.cdf' % (self.dmsp, (self.day.strftime('%Y%m%d'))))
+        # self.day_ssj = day_ssj #store this in case we want to read in the spectral data later
 
-            #read in precipetation data
-            mean_energy_dmsp_day = cdffile['ELE_AVG_ENERGY'][:].flatten()
-            mean_energy_dmsp_uncert_day =   cdffile['ELE_AVG_ENERGY_STD'][:].flatten()
+        with pycdf.CDF(ssj_file) as cdffile:    
+            self['lons'] = cdffile['SC_APEX_MLT'][:].flatten() * 15. #report lons at magnetic local time in degrees 
+            self['lats'] = cdffile['SC_APEX_LAT'][:].flatten() 
 
+            #read in precipitation data
+            self['ele_mean_energy'] = cdffile['ELE_AVG_ENERGY'][:].flatten() * 1e-3 #report as KeV
+            self['ele_mean_energy_uncert'] =  self['ele_mean_energy'] * cdffile['ELE_AVG_ENERGY_STD'][:].flatten() #file reports uncertainty as fractional uncertainty so get it in as absolute uncertainty
 
-            energy_flux_dmsp_day = cdffile['ELE_TOTAL_ENERGY_FLUX'][:].flatten()
-            energy_flux_dmsp_uncert_day = cdffile['ELE_TOTAL_ENERGY_FLUX_STD'][:].flatten()
+            self['ele_total_energy_flux'] = cdffile['ELE_TOTAL_ENERGY_FLUX'][:].flatten()
+            self['ele_total_energy_flux_uncert'] = self['ele_total_energy_flux'] * cdffile['ELE_TOTAL_ENERGY_FLUX_STD'][:].flatten()
 
-            #read in pseudo obs 
-            pseudoLBHL = cdffile['LYMAN_BIRGE_HOPFIELD_LONG'][:]
-            pseudoLBHL_solar = cdffile['LYMAN_BIRGE_HOPFIELD_LONG_SOLAR'][:]
+            self['ion_total_energy_flux'] = cdffile['ION_TOTAL_ENERGY_FLUX'][:].flatten()
+            self['ion_total_energy_flux_uncert'] = self['ion_total_energy_flux'] * cdffile['ION_TOTAL_ENERGY_FLUX_STD'][:].flatten()
 
-            pseudoLBHS = cdffile['LYMAN_BIRGE_HOPFIELD_SHORT'][:]
-            pseudoLBHS_solar = cdffile['LYMAN_BIRGE_HOPFIELD_SHORT_SOLAR'][:]
 
             #read in spectrogram data
             if self.read_spec:
                 self.channel_energies = cdffile['CHANNEL_ENERGIES'][:]
-                self.ele_diff_energy_flux = cdffile['ELE_DIFF_ENERGY_FLUX'][:]
-                self.ion_diff_energy_flux = cdffile['ION_DIFF_ENERGY_FLUX'][:]
-                #filter out negative fluxes?
-                self.ele_diff_energy_flux[self.ele_diff_energy_flux <= 0 | ~np.isfinite(self.ele_diff_energy_flux) ] = np.nan
+                self['ele_diff_energy_flux'] = cdffile['ELE_DIFF_ENERGY_FLUX'][:]
+                self['ion_diff_energy_flux'] = cdffile['ION_DIFF_ENERGY_FLUX'][:]
 
-                #proton
-                self.ion_energy_flux_dmsp = cdffile['ION_TOTAL_ENERGY_FLUX'][:].flatten()
+                #filter out negative fluxes 
+                self['ele_diff_energy_flux'][self['ele_diff_energy_flux'] <= 0 | ~np.isfinite(self['ele_diff_energy_flux']) ] = np.nan
+                self['ion_diff_energy_flux'][self['ion_diff_energy_flux'] <= 0 | ~np.isfinite(self['ion_diff_energy_flux']) ] = np.nan
 
-            orbit_index_day = cdffile['ORBIT_INDEX'][:].flatten()
-            epoch_dmsp_day = cdffile['Epoch'][:].flatten()
 
-        pseudoLBHL_auroral,  pseudoLBHS_auroral = pseudoLBHL - pseudoLBHL_solar, pseudoLBHS - pseudoLBHS_solar
+            self['orbit_index'] = cdffile['ORBIT_INDEX'][:].flatten()
+            self['epoch'] = cdffile['Epoch'][:].flatten()
 
-        return MLT_dmsp_day, LON_dmsp_day,LAT_dmsp_day, mean_energy_dmsp_day, \
-                    mean_energy_dmsp_uncert_day, energy_flux_dmsp_day, \
-                    energy_flux_dmsp_uncert_day, \
-                    pseudoLBHL_auroral, pseudoLBHS_auroral, \
-                    orbit_index_day, epoch_dmsp_day
-    
-    def time_mask(self,startdt,enddt, lat_limit = 50):
+        return 
+
+
+    def get_ingest_data(self,startdt = None, enddt = None, hemisphere = None):
         """
+        
             startdt - datetime object
                 Start time for time period of interest
             enddt - datetime object
                 End time for time period of interest
-            lat_limit - float, optional
-                absolute lower limit for the magnetic latitude of observations to be used
         """
+        lat_limit = self.min_lat
+
+        startdt = jd2datetime(np.nanmin(self['jds'])) if startdt is None else startdt
+        enddt = jd2datetime(np.nanmax(self['jds'])) if enddt is None else endt
+        hemisphere = self.hemisphere if hemisphere is None else hemisphere
 
         #create the hemispheric and mlat mask
-        if self.hemi == 'N':
-            mask = np.logical_and(self.epoch >=startdt, self.epoch< enddt) & (self.mlats > lat_limit)
-        elif self.hemi == 'S':
-            mask = np.logical_and(self.epoch >=startdt, self.epoch< enddt) & (self.mlats < -lat_limit)
-        else:
-            raise ValueError('Hemi needs to be N or S')
-
-        #include a mask by orbit
-        orbits_in_time = self.orbit_index[mask]
-        first_orbit_in_time = orbits_in_time[0]
-        mask = mask & (self.orbit_index == first_orbit_in_time) 
-
-        return mask 
-
-    def time_mask_ssj(self,startdt,enddt, lat_limit = 50,return_rad = False):
-        """
-            startdt - datetime object
-                Start time for time period of interest
-            enddt - datetime object
-                End time for time period of interest
-            lat_limit - float, optional
-                absolute lower limit for the magnetic latitude of observations to be used
-        """
-
-        #create the hemispheric and mlat mask
-        if self.hemi == 'N':
-            mask = np.logical_and(self.epoch >=startdt, self.epoch< enddt) & (self.mlats > lat_limit)
-        elif self.hemi == 'S':
-            mask = np.logical_and(self.epoch >=startdt, self.epoch< enddt) & (self.mlats < -lat_limit)
+        if self.hemisphere == 'N':
+            mask = np.logical_and(self['epoch'] >=startdt, self['epoch'] < enddt) & (self['lats'] > lat_limit)
+        elif self.hemisphere == 'S':
+            mask = np.logical_and(self['epoch'] >=startdt, self['epoch'] < enddt) & (self['lats'] < -lat_limit)
         else:
             raise ValueError('Hemi needs to be N or S')
 
         # include a mask by orbit
-        orbits_in_time = self.orbit_index[mask]
+        orbits_in_time = self['orbit_index'][mask]
         first_orbit_in_time = orbits_in_time[0]
-        mask = mask & (self.orbit_index == first_orbit_in_time) 
+        mask = mask & (self['orbit_index'] == first_orbit_in_time) 
 
-        #apply the mask 
-        MLT_dmsp, LON_dmsp, LAT_dmsp, mean_energy_dmsp, energy_flux_dmsp, \
-        epoch_dmspjd, mean_energy_dmsp_uncert,energy_flux_dmsp_uncert, lbhl, lbhs  = self.mlts[mask], self.mlons[mask], \
-            self.mlats[mask],self.mean_energy[mask], self.energy_flux[mask], self.epochjd[mask], \
-            self.mean_energy_uncert[mask],self.energy_flux_uncert[mask], self.lbhl[mask], self.lbhs[mask]
+        data_window = OrderedDict()
+        for datavarname,datavararr in self.items():
+            data_window[datavarname] = datavararr[mask]
 
+        return data_window 
 
-        #check order 
-        if return_rad: #return radiance 
-            return LON_dmsp.flatten(), LAT_dmsp.flatten(), mean_energy_dmsp.flatten(), energy_flux_dmsp.flatten(), \
-                epoch_dmspjd.flatten(), mean_energy_dmsp_uncert.flatten(),energy_flux_dmsp_uncert.flatten(),\
-                lbhl, lbhs
-        else:
-            return LON_dmsp.flatten(), LAT_dmsp.flatten(), mean_energy_dmsp.flatten(), energy_flux_dmsp.flatten(), \
-                epoch_dmspjd.flatten(), mean_energy_dmsp_uncert.flatten(),energy_flux_dmsp_uncert.flatten()
+    def __str__(self):
+        return '{} {}:\n hemisphere {},\n date {}-{}-{}'.format(self.name,
+                                                        self.observation_type,
+                                                        self.hemisphere,
+                                                        self.year,
+                                                        self.month,
+                                                        self.day)
+
+    def __setitem__(self,item,value):
+        if not hasattr(self,'_observation_data'):
+            self._observation_data = OrderedDict()
+        self._observation_data[item]=value
+
+    def __getitem__(self,item):
+        return self._observation_data[item]
+
+    def __contains__(self,item):
+        return item in self._observation_data
+
+    def __iter__(self):
+        for item in self._observation_data:
+            yield item
+
+    def items(self):
+        for key,value in self._observation_data.items():
+            yield key,value
