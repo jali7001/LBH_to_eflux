@@ -15,17 +15,35 @@ class ssj_day(object):
     This class facilitates the data handling for the SSJ data provided by GLOW model using v2 
 
     Attributes:
-    mlons : 
-    mlats : 
-
-    ele_mean_energy
-    ele_mean_energy_uncert
-    ele_total_energy_flux
-    ele_total_energy_flux_uncert
-    ion_total_energy_flux
-    ion_total_energy_flux_uncert
-    ele_diff_energy_flux
-    ion_diff_energy_flux
+    -----------
+    ['jds'] : np.ndarray (n_obs x 1)
+        Array of observation times (in Julian Date)
+    ['epoch'] : datetime list (n_obs x 1)
+        Array of observation times in datetime
+    ['lats'] : np.ndarray (n_obs x 1)
+        Magnetic latitude (degrees) of observations in Apex coordinates of reference height 110 km 
+    ['lons'] : np.ndarray (n_obs x 1)
+        Magnetic local time of observations (expressed in degrees ) of observations in Apex coordinates 
+    ['orbit_index'] : np.ndarray (n_obs x 1)
+        orbit number of observation
+    ['ele_mean_energy'] : np.ndarray (n_obs x 1)
+        Electron mean energy in KeV
+    ['ele_mean_energy_uncert'] : np.ndarray (n_obs x 1)
+        Electron mean energy uncertainty KeV
+    ['ele_total_energy_flux'] : np.ndarray (n_obs x 1)
+        Electron total energy flux in ergs/cm^2 s ster
+    ['ele_total_energy_flux_uncert'] : np.ndarray (n_obs x 1)
+        Electron total energy flux uncertainty in ergs/cm^2 s ster
+    ['ion_total_energy_flux'] : np.ndarray (n_obs x 1)
+        Ion total energy flux in ergs/cm^2 s ster
+    ['ion_total_energy_flux_uncert'] : np.ndarray (n_obs x 1)
+        Ion total energy flux uncertainty in ergs/cm^2 s ster
+    ['ele_diff_energy_flux'] : np.ndarray (n_obs x 19)
+        Electron energy flux across the 19 energy channels ergs/cm^2 s ster.
+        Only appears if read_spec = True
+    ['ion_diff_energy_flux'] : np.ndarray (n_obs x 19)
+        Ion energy flux across the 19 energy channels ergs/cm^2 s ster
+        Only appears if read_spec = True
     """
     def __init__(self, dmsp, hemi, ssj_file, read_spec = False, min_lat = 50):
         """
@@ -57,18 +75,10 @@ class ssj_day(object):
 
     def read_cdf_ssj(self):
         """
-        Read in GLOW processing of SSJ data for the entire day
-
-        Returns
-        -------
-
+        Read in GLOW processing of SSJ data for the entire day.
         """
 
         ssj_file = self.ssj_file
-
-        # day_dir = os.path.join(self.ssj_dir, '{}'.format(self.day.strftime('%Y%m%d')))
-        # day_ssj =  os.path.join(day_dir,'dmsp-f%d_ssj_precipitating-electrons-ions_%s_v1.1.3_GLOWcond_v2.cdf' % (self.dmsp, (self.day.strftime('%Y%m%d'))))
-        # self.day_ssj = day_ssj #store this in case we want to read in the spectral data later
 
         with pycdf.CDF(ssj_file) as cdffile:    
             self['lons'] = cdffile['SC_APEX_MLT'][:].flatten() * 15. #report lons at magnetic local time in degrees 
@@ -104,11 +114,18 @@ class ssj_day(object):
 
     def get_ingest_data(self,startdt = None, enddt = None, hemisphere = None):
         """
+        Parameters
+        ----------
+        startdt : datetime object
+            Defaults to first available observation time
+        enddt : datetime object
+            Defaults to last available observation time
+        hemisphere : str
+            Defaults to hemisphere specified in init 
         
-            startdt - datetime object
-                Start time for time period of interest
-            enddt - datetime object
-                End time for time period of interest
+        Returns
+        --------
+        Subset of observations corresponding to date and hemisphere bounds. 
         """
         lat_limit = self.min_lat
 
