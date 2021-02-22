@@ -187,6 +187,7 @@ class SDRPass(object):
             #read in solar zenith angle in degrees
             disk['SZA'] = h5f['PIERCEPOINT_DAY_SZA_AURORAL'][:]
 
+            h5f.close()
         #get epoch from seconds of day, day of year, and year in terms of datetimes 
         dt = np.empty((len(disk['doy']),1),dtype='object')
         for k in range(len(dt)):
@@ -393,7 +394,7 @@ class SDRPass(object):
 
         """
         startdt = jd2datetime(np.nanmin(self['jds'])) if startdt is None else startdt
-        enddt = jd2datetime(np.nanmax(self['jds'])) if enddt is None else endt
+        enddt = jd2datetime(np.nanmax(self['jds'])) if enddt is None else enddt
         hemisphere = self.hemisphere if hemisphere is None else hemisphere
 
         datadict = self.get_data_window(startdt,
