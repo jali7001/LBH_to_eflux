@@ -7,10 +7,10 @@ import esabin
 import datetime, os
 import h5py
 from sklearn import linear_model
-from ..helper_funcs import latlt2polar, polar2dial, module_Apex, update_apex_epoch
+from LBH_to_eflux.helper_funcs import latlt2polar, polar2dial, module_Apex, update_apex_epoch
 
 
-class ssusiSDRpass(object):
+class SDRPass(object):
     """
     Description
     -----------

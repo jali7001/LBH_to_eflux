@@ -10,7 +10,7 @@ from geospacepy.special_datetime import (datetimearr2jd,
                                         datetime2jd,
                                         jd2datetime)
 
-class ssj_day(object):
+class SSJDay(object):
     """
     This class facilitates the data handling for the SSJ data provided by GLOW model using v2 
 
@@ -73,6 +73,9 @@ class ssj_day(object):
         #convert epoch to jd time 
         self['jds'] = special_datetime.datetimearr2jd(self['epoch']) 
 
+
+
+
     def read_cdf_ssj(self):
         """
         Read in GLOW processing of SSJ data for the entire day.
@@ -83,6 +86,9 @@ class ssj_day(object):
         with pycdf.CDF(ssj_file) as cdffile:    
             self['lons'] = cdffile['SC_APEX_MLT'][:].flatten() * 15. #report lons at magnetic local time in degrees 
             self['lats'] = cdffile['SC_APEX_LAT'][:].flatten() 
+
+
+            #put in catch statement for NASA cdaweb file
 
             #read in precipitation data
             self['ele_mean_energy'] = cdffile['ELE_AVG_ENERGY'][:].flatten() * 1e-3 #report as KeV
