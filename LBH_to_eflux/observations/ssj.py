@@ -136,7 +136,7 @@ class SSJDay(object):
         lat_limit = self.min_lat
 
         startdt = jd2datetime(np.nanmin(self['jds'])) if startdt is None else startdt
-        enddt = jd2datetime(np.nanmax(self['jds'])) if enddt is None else endt
+        enddt = jd2datetime(np.nanmax(self['jds'])) if enddt is None else enddt
         hemisphere = self.hemisphere if hemisphere is None else hemisphere
 
         #create the hemispheric and mlat mask
