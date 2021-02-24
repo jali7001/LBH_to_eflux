@@ -49,16 +49,16 @@ class SSJDay(object):
         """
         Parameters
         ----------
-            dmsp - int
+            dmsp : int
                  DMSP spacecraft must take value in [16, 17, 18]
-            hemi - str
+            hemi : str
                 Hemisphere of observations (must be either 'N' or 'S')
-            ssj_file- str
+            ssj_file : str
                 location of ssj file 
-            read_spec - bool, optional
+            read_spec : bool, optional
                 Switch of whether or not to read differential flux values
                 Defaults to False
-            min_lat - float, optional
+            min_lat : float, optional
         """
 
         self.dmsp = dmsp
@@ -140,9 +140,9 @@ class SSJDay(object):
         hemisphere = self.hemisphere if hemisphere is None else hemisphere
 
         #create the hemispheric and mlat mask
-        if self.hemisphere == 'N':
+        if hemisphere == 'N':
             mask = np.logical_and(self['epoch'] >=startdt, self['epoch'] < enddt) & (self['lats'] > lat_limit)
-        elif self.hemisphere == 'S':
+        elif hemisphere == 'S':
             mask = np.logical_and(self['epoch'] >=startdt, self['epoch'] < enddt) & (self['lats'] < -lat_limit)
         else:
             raise ValueError('Hemi needs to be N or S')

@@ -538,12 +538,7 @@ class SDRPass(object):
         data in interval [startdt,enddt)"""
         startjd = datetime2jd(startdt)
         endjd = datetime2jd(enddt)
-        if endjd< np.nanmin(self['jds']) or startjd> np.nanmax(self['jds']):
-            dts = (startdt,enddt)
-            raise DataWindowBoundaryError(('Data required for: '
-                                          +self._window_time_bounds_str(*dts)
-                                          +'out of range for SuperDARN object: '
-                                          +self._time_bounds_str()))
+
         inrange = np.logical_and(self['jds'].flatten()>=startjd,
                                     self['jds'].flatten()<endjd)
         return inrange
@@ -552,12 +547,6 @@ class SDRPass(object):
         if hemisphere not in ['N','S']:
             return ValueError(('{}'.format(hemisphere)
                               +' is not a valid hemisphere (use N or S)'))
-        if hemisphere != self.hemisphere:
-            raise DataWindowBoundaryError('hemisphere {}'.format(hemisphere)
-                                          +' was requested but SSUSI'
-                                          +' object only contains data for'
-                                          +' {}'.format(self.hemisphere)
-                                          +' hemisphere.')
         if hemisphere == 'N':
             inhemi = self['lats'] > self.minlat
         elif hemisphere == 'S':
