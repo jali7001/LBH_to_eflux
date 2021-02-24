@@ -120,7 +120,7 @@ year = 2014
 day_arr = [17,18,19,20,21,22,23] #days of month to run for  
 doy_arr = [48,49,50,51,52,53]
 hemis = ['N','S']
-
+radiances_to_use = ['LBHL','LBHS']
 #make sure to change this 
 ssusi_dir = os.path.join('/home/matsuo/amgeo_dev/LBH_to_eflux/LBH_to_eflux/','SSUSI_SDR_Observations')
 ssj_dir = os.path.join('/home/matsuo/amgeo_dev/LBH_to_eflux/LBH_to_eflux/','SSJ_Observations')
@@ -196,76 +196,7 @@ for doy in doy_arr:
                 SSUSIandSSJConjunctions.write_to_h5(conjunction_dir, conjunctions, hemi, dmsp, pass_center_dt)
 
                 pdb.set_trace()
-                
+
                 passnumber+=1
 
 
-
-
-
-# for day in day_arr:
-#     #get new day 
-#     tom_date = datetime.datetime(2014,2,day) #Day we want to run AMIE for (YYYY-MM-DD)
-#     for dmsp in dmsp_arr: #loop through all the satellites 
-#         #find the relevant files for the particular dsmp satellite
-#         day_dir = os.path.join(ssusi_dir,'{}'.format(tom_date.strftime('%Y%m%d')))
-#         #level sdr
-#         day_ssusi = os.path.join(day_dir, 'dmspf{}_ssusi_sdr-disk_*'.format(dmsp))
-#         ssusi_files = glob.glob(day_ssusi)
-#         ssusi_files = np.sort(ssusi_files) #sort the files by time 
-        
-#         for file_name in ssusi_files[:]:
-#             for hemi in hemis:
-#                 #initialize datadict
-#                 datadict = {}
-#                 try: 
-#                     #get relevant obs 
-#                     ssjobs = comparisonclass.ssj_day(dmsp = dmsp, hemi = hemi,day = tom_date,ssj_dir = ssj_dir, read_spec = True)
-#                     ssusiobs = comparisonclass.ssusiSDR_pass(dmsp = dmsp, hemi = hemi, day = tom_date, ssusi_file = file_name, ac = ac)
-
-#                     #mask dmsp with start and end times
-#                     dmsppass = ssjobs.time_mask_ssj(ssusiobs.startdt,ssusiobs.enddt, return_rad = True)
-#                     LON_dmsp, LAT_dmsp, mean_energy_dmsp, energy_flux_dmsp, \
-#                     epoch_dmspjd, mean_energy_dmsp_uncert,energy_flux_dmsp_uncert, lbhl, lbhs  = dmsppass 
-                    
-#                     dt = special_datetime.jd2datetime(np.median(epoch_dmspjd))
-#                     datadict['FILE_NAME'] = file_name
-#                     datadict['pass_nums'] = passnumber
-#                     datadict['SSJ_ELE_FLUX'] = energy_flux_dmsp.copy()
-#                     datadict['DMSP_LON'] = LON_dmsp.copy()
-#                     datadict['DMSP_LAT'] = LAT_dmsp.copy()
-#                     datadict['JDS'] = epoch_dmspjd.copy()
-                    
-#                     #get the time mask and mask the channels 
-#                     mask = ssjobs.time_mask(ssusiobs.startdt,ssusiobs.enddt)
-#                     channel_energies = ssjobs.channel_energies
-#                     datadict['ELE_DIFF_ENERGY_FLUX'] =  ssjobs.ele_diff_energy_flux[mask.flatten(),:]
-#                     datadict['ION_DIFF_ENERGY_FLUX'] = ssjobs.ion_diff_energy_flux[mask.flatten(),:]
-#                     datadict['SSJ_ION_FLUX'] = ssjobs.ion_energy_flux_dmsp[mask.flatten()]
-                    
-
-#                     datadict['SSUSI_LBHL'] = dmsp_map_interpolate_NN_smooth_great_circle(LAT_dmsp,LON_dmsp, ssusiobs.mlats,ssusiobs.mlons, ssusiobs.lbhl.copy(), k = 10)
-#                     datadict['SSUSI_LBHS'] = dmsp_map_interpolate_NN_smooth_great_circle(LAT_dmsp,LON_dmsp, ssusiobs.mlats,ssusiobs.mlons, ssusiobs.lbhs.copy(), k = 10)
-                    
-                    
-#                     #keep track of pass number, hemi, and satellite
-#                     datadict['PASS_NUM'] = np.ones_like(epoch_dmspjd) * passnumber
-#                     datadict['SAT_NOs'] = np.ones_like(epoch_dmspjd) * dmsp
-#                     if hemi == 'N':
-#                         datadict['HEMIS'] = np.ones_like(epoch_dmspjd)
-#                     else:
-#                         datadict['HEMIS'] = np.zeros_like(epoch_dmspjd)
-                    
-#                     #save the data as an h5 file 
-#                     hd_dir = os.path.join('/home/matsuo/amgeo_dev/Pseudo_ML','conjunction_data2')
-#                     file_dir = os.path.join(hd_dir,'LBHL_comp_{}{}{}.hdf5'.format(hemi,dmsp,dt.strftime('%m:%d:%Y_%H:%M')))
-
-#                     h5f = h5py.File(file_dir,'w')
-#                     for key in datadict:
-#                         h5f.create_dataset(key,data = datadict[key])
-#                     h5f.close()
-                    
-#                     passnumber+=1
-#                 except:
-#                     a = 1
-                    
