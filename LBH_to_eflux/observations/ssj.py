@@ -84,9 +84,18 @@ class SSJDay(object):
         ssj_file = self.ssj_file
 
         with pycdf.CDF(ssj_file) as cdffile:    
-            self['lons'] = cdffile['SC_APEX_MLT'][:].flatten() * 15. #report lons at magnetic local time in degrees 
-            self['lats'] = cdffile['SC_APEX_LAT'][:].flatten() 
+            
+            try:
+                #first try v1.1.3 coordinates
+                self['lons'] = cdffile['SC_APEX_MLT'][:].flatten() * 15. #report lons at magnetic local time in degrees 
+                self['lats'] = cdffile['SC_APEX_LAT'][:].flatten() 
+                self['orbit_index'] = cdffile['ORBIT_INDEX'][:].flatten()
 
+            except:
+                #then try v1.1.2 coordinates
+                self['lons'] = cdffile['SC_AACGM_LTIME'][:].flatten() * 15. #report lons at magnetic local time in degrees 
+                self['lats'] = cdffile['SC_AACGM_LAT'][:].flatten() 
+                self['orbit_index'] = np.ones_like(self['lons'])
 
             #put in catch statement for NASA cdaweb file
 
@@ -112,7 +121,6 @@ class SSJDay(object):
                 self['ion_diff_energy_flux'][self['ion_diff_energy_flux'] <= 0 | ~np.isfinite(self['ion_diff_energy_flux']) ] = np.nan
 
 
-            self['orbit_index'] = cdffile['ORBIT_INDEX'][:].flatten()
             self['epoch'] = cdffile['Epoch'][:].flatten()
 
         return 
