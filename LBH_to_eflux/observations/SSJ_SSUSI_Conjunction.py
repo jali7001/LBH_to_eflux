@@ -19,6 +19,8 @@ from copy import copy, deepcopy
 from LBH_to_eflux.observations.ssj import SSJDay
 from LBH_to_eflux.observations.ssusi import SDRPass
 from sklearn.neighbors import NearestNeighbors
+
+
 class SSUSIandSSJConjunctions(object):
 
     @staticmethod
@@ -194,8 +196,6 @@ for doy in doy_arr:
 
                 #save to h5 file
                 SSUSIandSSJConjunctions.write_to_h5(conjunction_dir, conjunctions, hemi, dmsp, pass_center_dt)
-
-                pdb.set_trace()
 
                 passnumber+=1
 
