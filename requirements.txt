@@ -7,3 +7,4 @@ apexpy
 -e git+git://github.com/lkilcommons/OvationPyme#egg=ovationpyme
 -e git+git://github.com/lkilcommons/nasaomnireader.git#egg=nasaomnireader
 -e git+git://github.com/lkilcommons/esabin.git#egg=esabin
+-e git+git://github.com/lkilcommons/ssj_auroral_boundary.git#egg=ssj_auroral_boundary
