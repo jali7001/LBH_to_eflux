@@ -155,14 +155,18 @@ class SSJDay(object):
         else:
             raise ValueError('Hemi needs to be N or S')
 
-        # include a mask by orbit
-        orbits_in_time = self['orbit_index'][mask]
-        first_orbit_in_time = orbits_in_time[0]
-        mask = mask & (self['orbit_index'] == first_orbit_in_time) 
+        try:
+            # include a mask by orbit
+            orbits_in_time = self['orbit_index'][mask]
+            first_orbit_in_time = orbits_in_time[0]
+            mask = mask & (self['orbit_index'] == first_orbit_in_time) 
 
-        data_window = OrderedDict()
-        for datavarname,datavararr in self.items():
-            data_window[datavarname] = datavararr[mask]
+            data_window = OrderedDict()
+            for datavarname,datavararr in self.items():
+                data_window[datavarname] = datavararr[mask]
+        except IndexError: 
+            print('No observations for this time or hemisphere')
+            raise
 
         return data_window 
 

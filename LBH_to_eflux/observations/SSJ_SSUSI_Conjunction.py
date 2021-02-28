@@ -120,9 +120,11 @@ class SSUSIandSSJConjunctions(object):
 dmsp_arr = [16,17,18] #satellites to run for 
 year = 2014
 day_arr = [17,18,19,20,21,22,23] #days of month to run for  
-doy_arr = [48,49,50,51,52,53]
+doy_arr = [48,49,50,51,52,53,54]
+# doy_arr = [54]
+
 hemis = ['N','S']
-radiances_to_use = ['LBHL','LBHS']
+radiances_to_use = ['LBHL','LBHS','Lyman Alpha']
 #make sure to change this 
 ssusi_dir = os.path.join('/home/matsuo/amgeo_dev/LBH_to_eflux/LBH_to_eflux/','SSUSI_SDR_Observations')
 ssj_dir = os.path.join('/home/matsuo/amgeo_dev/LBH_to_eflux/LBH_to_eflux/','SSJ_Observations')
@@ -145,6 +147,7 @@ for doy in doy_arr:
 
         #get all the ssusi files
         ssusi_files = glob.glob(os.path.join(ssusi_day_dir, 'dmspf%d_ssusi_*' % (dmsp)))
+        ssusi_files = np.sort(ssusi_files) 
 
         #iterate across the ssusi files
         for ssusi_file in ssusi_files:
@@ -154,49 +157,58 @@ for doy in doy_arr:
             #get the observations for each file
             ssusi_obs_LBHL = SDRPass(ssusi_file, dmsp, 'N','LBHL')
             ssusi_obs_LBHS = SDRPass(ssusi_file, dmsp, 'N','LBHS')
-            
+            ssusi_obs_LYMAN = SDRPass(ssusi_file,dmsp, 'N','Lyman Alpha')
+
             #start and end times of this pass
             startdt = jd2datetime(np.nanmin(ssusi_obs_LBHL['jds']))
             enddt = jd2datetime(np.nanmax(ssusi_obs_LBHL['jds']))
 
             for hemi in hemis:
-                ssusi_lats,ssusi_lons,LBHL,LBHL_var,jds = ssusi_obs_LBHL.get_ingest_data(hemisphere = hemi)
-                ssusi_lats,ssusi_lons,LBHS,LBHS_var,jds = ssusi_obs_LBHS.get_ingest_data(hemisphere = hemi)
+                try:
+                    ssusi_lats,ssusi_lons,LBHL,LBHL_var,jds = ssusi_obs_LBHL.get_ingest_data(hemisphere = hemi)
+                    ssusi_lats,ssusi_lons,LBHS,LBHS_var,jds = ssusi_obs_LBHS.get_ingest_data(hemisphere = hemi)
+                    ssusi_lats,ssusi_lons,LYMAN,LYMAN_var,jds = ssusi_obs_LBHS.get_ingest_data(hemisphere = hemi)
 
-                ssusi_pass_obs = {}
-                ssusi_pass_obs['lats'], ssusi_pass_obs['lons'], ssusi_pass_obs['jds']= ssusi_lats, ssusi_lons, jds
-                ssusi_pass_obs['LBHL'], ssusi_pass_obs['LBHL_var'] = LBHL, LBHL_var
-                ssusi_pass_obs['LBHS'], ssusi_pass_obs['LBHS_var'] = LBHS, LBHS_var
+                    ssusi_pass_obs = {}
+                    ssusi_pass_obs['lats'], ssusi_pass_obs['lons'], ssusi_pass_obs['jds']= ssusi_lats, ssusi_lons, jds
+                    ssusi_pass_obs['LBHL'], ssusi_pass_obs['LBHL_var'] = LBHL, LBHL_var
+                    ssusi_pass_obs['LBHS'], ssusi_pass_obs['LBHS_var'] = LBHS, LBHS_var
+                    ssusi_pass_obs['LYMAN'], ssusi_pass_obs['LYMAN_var'] = LYMAN, LYMAN_var
 
-                #get the relevant SSJ data for this pass 
-                ssj_pass_obs = ssj_obs.get_ingest_data(startdt = startdt, enddt = enddt, hemisphere = hemi)
+                    #get the relevant SSJ data for this pass 
+                    ssj_pass_obs = ssj_obs.get_ingest_data(startdt = startdt, enddt = enddt, hemisphere = hemi)
 
-                # if ssusi obs overlap to next day, read next day ssj data and append to ssj_pass_obs dict
-                if enddt > np.nanmax(ssj_obs['epoch']):
-                    ssj_day_dir = ssj_dir + '/{}{}'.format(year,doy+1)
-                    day_ssj_file =  glob.glob(os.path.join(ssj_day_dir,'dmsp-f%d_ssj_*.cdf' % (dmsp)))[0]
-                    ssj_obs_next_day = SSJDay(dmsp,'N',day_ssj_file, read_spec = True)
-                    ssj_pass_obs_next_day = ssj_pass_obs.get_ingest_data(startdt = startdt, enddt = enddt, hemisphere = hemi)
+                    # if ssusi obs overlap to next day, read next day ssj data and append to ssj_pass_obs dict
+                    if enddt > np.nanmax(ssj_obs['epoch']):
+                        ssj_day_dir = ssj_dir + '/{}{}'.format(year,doy+1)
+                        day_ssj_file =  glob.glob(os.path.join(ssj_day_dir,'dmsp-f%d_ssj_*.cdf' % (dmsp)))[0]
+                        ssj_obs_next_day = SSJDay(dmsp,'N',day_ssj_file, read_spec = True)
+                        ssj_pass_obs_next_day = ssj_pass_obs.get_ingest_data(startdt = startdt, enddt = enddt, hemisphere = hemi)
 
-                    #append to ssj_pass _obs
-                    for key in ssj_pass_obs:
-                        ssj_pass_obs[key] =  np.append(ssj_pass_obs[key], ssj_pass_obs_next_day[key])                
-                
-                #get times for the ssusi pass
-                pass_startdt = jd2datetime(np.nanmin(ssj_pass_obs['jds']))
-                pass_enddt = jd2datetime(np.nanmax(ssj_pass_obs['jds']))
-                pass_center_dt = pass_startdt + (pass_enddt - pass_startdt)/2
-                print(pass_center_dt)
+                        #append to ssj_pass _obs
+                        for key in ssj_pass_obs:
+                            ssj_pass_obs[key] =  np.append(ssj_pass_obs[key], ssj_pass_obs_next_day[key])                
+                    
+                    #get times for the ssusi pass
+                    pass_startdt = jd2datetime(np.nanmin(ssj_pass_obs['jds']))
+                    pass_enddt = jd2datetime(np.nanmax(ssj_pass_obs['jds']))
+                    pass_center_dt = pass_startdt + (pass_enddt - pass_startdt)/2
+                    print(pass_center_dt)
 
-                del ssj_pass_obs['epoch']
+                    del ssj_pass_obs['epoch']
 
-                #get the conjunctions between SSUSI and SSJ 
-                conjunctions = SSUSIandSSJConjunctions.get_conjunction_data(ssusi_pass_obs, ssj_pass_obs, k = 10, tol = 1)
-                conjunctions['pass_num'] = np.ones_like(conjunctions['jds']) * passnumber
+                    #get the conjunctions between SSUSI and SSJ 
+                    conjunctions = SSUSIandSSJConjunctions.get_conjunction_data(ssusi_pass_obs, ssj_pass_obs, obs_to_interpolate = ['LBHL','LBHS','LYMAN'], k = 10, tol = 1)
+                    conjunctions['pass_num'] = np.ones_like(conjunctions['jds']) * passnumber
+                    conjunctions['sat_no'] = np.ones_like(conjunctions['jds']) * dmsp
+                    conjunctions['hemi'] = [hemi] * len(conjunctions['jds'])
 
-                #save to h5 file
-                SSUSIandSSJConjunctions.write_to_h5(conjunction_dir, conjunctions, hemi, dmsp, pass_center_dt)
+                    #save to h5 file
+                    SSUSIandSSJConjunctions.write_to_h5(conjunction_dir, conjunctions, hemi, dmsp, pass_center_dt)
 
-                passnumber+=1
+                    passnumber+=1
+                except:
+                    print('Invalid conjunctions')
+
 
 

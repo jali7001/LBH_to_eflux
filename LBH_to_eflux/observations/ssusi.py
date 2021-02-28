@@ -249,6 +249,7 @@ class SDRPass(object):
         if self.noise_removal:
             radiance_fit = self._radiance_zenith_correction(disk_data['SZA'],disk_int['Y'])                    
             disk_int['Y'] = disk_int['Y'] - radiance_fit
+            disk_int['Y'][disk_int['Y']<0] = 0
 
         #flatten data
         for item in disk_int:
