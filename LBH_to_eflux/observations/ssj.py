@@ -105,6 +105,9 @@ class SSJDay(object):
 
             self['ele_total_energy_flux'] = cdffile['ELE_TOTAL_ENERGY_FLUX'][:].flatten()
             self['ele_total_energy_flux_uncert'] = self['ele_total_energy_flux'] * cdffile['ELE_TOTAL_ENERGY_FLUX_STD'][:].flatten()
+            
+            self['ion_mean_energy'] = cdffile['ION_AVG_ENERGY'][:].flatten() * 1e-3 #report as KeV
+            self['ion_mean_energy_uncert'] =  self['ion_mean_energy'] * cdffile['ELE_AVG_ENERGY_STD'][:].flatten() #file reports uncertainty as fractional uncertainty so get it in as absolute uncertainty
 
             self['ion_total_energy_flux'] = cdffile['ION_TOTAL_ENERGY_FLUX'][:].flatten()
             self['ion_total_energy_flux_uncert'] = self['ion_total_energy_flux'] * cdffile['ION_TOTAL_ENERGY_FLUX_STD'][:].flatten()
@@ -167,6 +170,8 @@ class SSJDay(object):
         except IndexError: 
             print('No observations for this time or hemisphere')
             raise
+
+        data_window['lats'] = np.abs(data_window['lats'])
 
         return data_window 
 

@@ -180,10 +180,11 @@ for doy in doy_arr:
 
                     # if ssusi obs overlap to next day, read next day ssj data and append to ssj_pass_obs dict
                     if enddt > np.nanmax(ssj_obs['epoch']):
-                        ssj_day_dir = ssj_dir + '/{}{}'.format(year,doy+1)
-                        day_ssj_file =  glob.glob(os.path.join(ssj_day_dir,'dmsp-f%d_ssj_*.cdf' % (dmsp)))[0]
-                        ssj_obs_next_day = SSJDay(dmsp,'N',day_ssj_file, read_spec = True)
-                        ssj_pass_obs_next_day = ssj_pass_obs.get_ingest_data(startdt = startdt, enddt = enddt, hemisphere = hemi)
+
+                        ssj_next_day_dir = ssj_dir + '/{}{}'.format(year,doy+1)
+                        next_day_ssj_file =  glob.glob(os.path.join(ssj_next_day_dir,'dmsp-f%d_ssj_*.cdf' % (dmsp)))[0]
+                        ssj_obs_next_day = SSJDay(dmsp,'N',next_day_ssj_file, read_spec = True)
+                        ssj_pass_obs_next_day = ssj_obs_next_day.get_ingest_data(startdt = startdt, enddt = enddt, hemisphere = hemi)
 
                         #append to ssj_pass _obs
                         for key in ssj_pass_obs:
@@ -201,8 +202,11 @@ for doy in doy_arr:
                     conjunctions = SSUSIandSSJConjunctions.get_conjunction_data(ssusi_pass_obs, ssj_pass_obs, obs_to_interpolate = ['LBHL','LBHS','LYMAN'], k = 10, tol = 1)
                     conjunctions['pass_num'] = np.ones_like(conjunctions['jds']) * passnumber
                     conjunctions['sat_no'] = np.ones_like(conjunctions['jds']) * dmsp
-                    conjunctions['hemi'] = [hemi] * len(conjunctions['jds'])
-
+                    if hemi == 'N':
+                        conjunctions['hemi'] = np.ones_like(conjunctions['jds'])
+                    else:
+                        conjunctions['hemi'] = np.ones_like(conjunctions['jds']) * -1
+ 
                     #save to h5 file
                     SSUSIandSSJConjunctions.write_to_h5(conjunction_dir, conjunctions, hemi, dmsp, pass_center_dt)
 
