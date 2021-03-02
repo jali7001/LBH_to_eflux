@@ -164,14 +164,13 @@ def dmsp_map_interpolate_NN_smooth_great_circle(lat_dmsp, lon_dmsp, lat_map, lon
     """
     generic function to spatially interpolate with the SSJ data using nearest neighbors using some arbirtary distance tolerance
     """
+    
     tol = np.deg2rad(tol)
     #reshape to N by 2 array where each row is (lat, lon)
     dmsp_points = np.deg2rad(np.hstack((lat_dmsp.flatten().reshape(-1,1),lon_dmsp.flatten().reshape(-1,1))))
     map_points = np.deg2rad(np.hstack((lat_map.flatten().reshape(-1,1), lon_map.flatten().reshape(-1,1))))
     N_points = dmsp_points.shape[0]
     obs_val = Obs_map.flatten()
-#     model = sklearn.neighbors.NearestNeighbors(n_neighbors = k, radius = tol, metric = 'myGreatCircleDistance')
-#     pdb.set_trace()
     model = sklearn.neighbors.NearestNeighbors(n_neighbors = k, radius = tol, metric = 'haversine')
 
     model.fit(map_points)

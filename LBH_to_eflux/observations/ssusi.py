@@ -481,10 +481,17 @@ class SDRPass(object):
             Radiance observations 
         """
 
+        #mask out non finite values
         finite = np.logical_and(np.isfinite(sza.flatten()),
                                 np.isfinite(radiance.flatten()))
 
-        clf = linear_model.LinearRegression(fit_intercept=True)
+        #mask out values above 1 kR
+        mask_high_radiance = radiance.flatten() < 1
+
+        finite = np.logical_and(finite,mask_high_radiance)
+        # clf = linear_model.LinearRegression(fit_intercept=True)
+        clf = linear_model.Ridge(fit_intercept=True)
+
         X = sza.reshape((-1,1))
         X = np.cos(np.deg2rad(sza).reshape((-1,1)))
         y = radiance.reshape((-1,1))
