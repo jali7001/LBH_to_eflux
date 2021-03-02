@@ -42,7 +42,7 @@ The script in that file currently assumes the data is organized in the same way 
 ### Testing
 I've also included two jupyter notebooks that plot some stuff from SSUSI and SSJ preprocessed observations. This would also be a good place to look at if you want to understand the API to interact with the observation files. 
 
-## Neural Netowrk 
+## Neural Network 
 For the neural network files, I found the visual aid that can be done with jupyter notebooks super helpful. As a result, I left most of these files as .ipynb.
 ### Training and Feature Engineering
 training_neural_network.ipynb walks through how I used the conjunction files between SSJ and SSUSI observations to train my neural network model. Most of the feature engineering is pretty standard and the model is fairly simple for deep learning purposes, but I still think it's a good place to start if you ever want to make the model more complicated.
