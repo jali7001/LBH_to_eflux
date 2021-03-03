@@ -40,14 +40,18 @@ I've also provided the code I used to find the k-nearest distance weighted avera
 The script in that file currently assumes the data is organized in the same way as is done by the download scripts. If that's not the case and my code sucks, you should be able to also use the conjunction class functionality in the file.
 
 ### Testing
-I've also included two jupyter notebooks that plot some stuff from SSUSI and SSJ preprocessed observations. This would also be a good place to look at if you want to understand the API to interact with the observation files. 
+I've also included two jupyter notebooks in the notebook folder that plot some stuff from SSUSI and SSJ preprocessed observations. This would also be a good place to look at if you want to understand the API to interact with the observation files. 
 
 ## Neural Network 
-For the neural network files, I found the visual aid that can be done with jupyter notebooks super helpful. As a result, I left most of these files as .ipynb.
+For the neural network files, I found the visual aid that can be done with jupyter notebooks super helpful. As a result, I left most of these files as .ipynb in the notebook folder.
+
 ### Training and Feature Engineering
 training_neural_network.ipynb walks through how I used the conjunction files between SSJ and SSUSI observations to train my neural network model. Most of the feature engineering is pretty standard and the model is fairly simple for deep learning purposes, but I still think it's a good place to start if you ever want to make the model more complicated.
 
 ### Analysis 
 neural_network_predictions.ipynb is the notebook I used to judge my neural network iterations for my thesis. 
+
+### More machine learning
+advancedNN.ipynb are some improvements to the original model I've made since writing the thesis. The model training makes it pretty easy to change your desired output to either electron total energy flux, ion total energy flux, electron mean energy, and ion mean energy. 
 
 
