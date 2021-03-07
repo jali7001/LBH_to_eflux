@@ -3,6 +3,8 @@ matplotlib
 netCDF4
 scikit-learn
 apexpy
+h5py
+pandas
 -e git+git://github.com/lkilcommons/geospacepy-lite.git#egg=geospacepy
 -e git+git://github.com/lkilcommons/OvationPyme#egg=ovationpyme
 -e git+git://github.com/lkilcommons/nasaomnireader.git#egg=nasaomnireader
