@@ -3,6 +3,8 @@
 Hi there! 
 I've decided to put the code I used to train the neural network model I used for my Master's here. 
 
+[![DOI](https://zenodo.org/badge/337891971.svg)](https://zenodo.org/badge/latestdoi/337891971)
+
 # Setup
 Follow these instructions if you want this repo to behave like the good little package it is.  
 
