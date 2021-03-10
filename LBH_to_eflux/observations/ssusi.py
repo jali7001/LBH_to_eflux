@@ -69,7 +69,7 @@ class SDRPass(object):
         self.name = 'SSUSI ' + radiance_type
         self.ssusi_colors = {
             'Lyman Alpha':0,
-            'OI  130.4':1,
+            'OI 130.4':1,
             'OI 135.6':2,
             'LBHS':3,
             'LBHL':4
